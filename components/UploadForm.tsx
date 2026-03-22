@@ -60,25 +60,17 @@ const voiceOptions = [
 const voiceIds = voiceOptions.flatMap((g) => g.voices.map((v) => v.id));
 type VoiceId = (typeof voiceIds)[number];
 
-const bookUploadSchema = z.object({
+export const bookUploadSchema = z.object({
   pdfFile: z
     .instanceof(File)
-    .optional()
-    .refine((f) => f instanceof File, "Please upload a PDF file.")
-    .refine(
-      (f) => !f || f.size <= MAX_PDF_BYTES,
-      "PDF must be 50MB or smaller"
-    )
-    .refine(
-      (f) => !f || f.type === "application/pdf",
-      "File must be a PDF."
-    ),
+    .refine((f) => f.size <= MAX_PDF_BYTES, "PDF must be 50MB or smaller")
+    .refine((f) => f.type === "application/pdf", "File must be a PDF."),
   coverImage: z
     .instanceof(File)
     .optional()
     .refine(
       (f) => !f || f.type.startsWith("image/"),
-      "Cover must be an image file."
+      "Cover must be an image file.",
     ),
   title: z.string().min(1, "Title is required."),
   author: z.string().min(1, "Author name is required."),
@@ -109,7 +101,12 @@ function UploadForm() {
   const coverImage = form.watch("coverImage");
 
   async function onSubmit(values: BookUploadValues) {
-    if (!values.pdfFile) return;
+    if (!values.pdfFile) {
+      form.setError("pdfFile", {
+        message: "Please upload a PDF file.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       // TODO: call API to start synthesis
@@ -134,23 +131,23 @@ function UploadForm() {
             render={({ field: { onChange, value, ...field } }) => (
               <FormItem>
                 <FormLabel>Book PDF File</FormLabel>
-                <FormControl>
-                  <div
-                    className={cn(
-                      "upload-dropzone border-2 border-dashed border-(--border-subtle)",
-                      value && "upload-dropzone-uploaded"
-                    )}
-                    onClick={() => pdfInputRef.current?.click()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        pdfInputRef.current?.click();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Upload PDF"
-                  >
+                <div
+                  className={cn(
+                    "upload-dropzone border-2 border-dashed border-(--border-subtle)",
+                    value && "upload-dropzone-uploaded",
+                  )}
+                  onClick={() => pdfInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      pdfInputRef.current?.click();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload PDF"
+                >
+                  <FormControl>
                     <input
                       {...field}
                       ref={pdfInputRef}
@@ -162,6 +159,7 @@ function UploadForm() {
                         if (file) onChange(file);
                       }}
                     />
+                  </FormControl>
                     {value ? (
                       <div className="flex flex-col items-center justify-center gap-2 flex-1 w-full px-4">
                         <span className="upload-dropzone-text truncate max-w-full">
@@ -172,8 +170,9 @@ function UploadForm() {
                           className="upload-dropzone-remove"
                           onClick={(e) => {
                             e.stopPropagation();
-                            form.setValue("pdfFile", undefined);
-                            if (pdfInputRef.current) pdfInputRef.current.value = "";
+                            form.resetField("pdfFile");
+                            if (pdfInputRef.current)
+                              pdfInputRef.current.value = "";
                           }}
                           aria-label="Remove PDF"
                         >
@@ -191,8 +190,7 @@ function UploadForm() {
                         </span>
                       </>
                     )}
-                  </div>
-                </FormControl>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -205,23 +203,23 @@ function UploadForm() {
             render={({ field: { onChange, value, ...field } }) => (
               <FormItem>
                 <FormLabel>Cover Image (Optional)</FormLabel>
-                <FormControl>
-                  <div
-                    className={cn(
-                      "upload-dropzone border-2 border-dashed border-(--border-subtle)",
-                      value && "upload-dropzone-uploaded"
-                    )}
-                    onClick={() => coverInputRef.current?.click()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        coverInputRef.current?.click();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Upload cover image"
-                  >
+                <div
+                  className={cn(
+                    "upload-dropzone border-2 border-dashed border-(--border-subtle)",
+                    value && "upload-dropzone-uploaded",
+                  )}
+                  onClick={() => coverInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      coverInputRef.current?.click();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload cover image"
+                >
+                  <FormControl>
                     <input
                       {...field}
                       ref={coverInputRef}
@@ -233,6 +231,7 @@ function UploadForm() {
                         onChange(file ?? undefined);
                       }}
                     />
+                  </FormControl>
                     {value ? (
                       <div className="flex flex-col items-center justify-center gap-2 flex-1 w-full px-4">
                         <span className="upload-dropzone-text truncate max-w-full">
@@ -263,8 +262,7 @@ function UploadForm() {
                         </span>
                       </>
                     )}
-                  </div>
-                </FormControl>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -330,7 +328,7 @@ function UploadForm() {
                                 "voice-selector-option flex flex-col items-start gap-1 p-4 min-w-0",
                                 field.value === voice.id
                                   ? "voice-selector-option-selected"
-                                  : "voice-selector-option-default"
+                                  : "voice-selector-option-default",
                               )}
                             >
                               <div className="flex items-center gap-2 w-full">
@@ -361,11 +359,7 @@ function UploadForm() {
             )}
           />
 
-          <Button
-            type="submit"
-            className="form-btn"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" className="form-btn" disabled={isSubmitting}>
             Begin Synthesis
           </Button>
         </form>

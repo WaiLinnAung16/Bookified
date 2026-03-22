@@ -9,6 +9,7 @@ import {
   FormProvider,
   useFormContext,
 } from "react-hook-form";
+import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 
 const Form = FormProvider;
@@ -43,7 +44,18 @@ const useFormField = () => {
   const fieldState = getFieldState(fieldContext.name, formState);
 
   if (!fieldContext.name) {
-    return { id: "", name: "", formItemId: "", formDescriptionId: "", formMessageId: "" };
+    return {
+      id: "",
+      name: "",
+      formItemId: "",
+      formDescriptionId: "",
+      formMessageId: "",
+      invalid: false,
+      isDirty: false,
+      isTouched: false,
+      isValidating: false,
+      error: undefined,
+    };
   }
 
   return {
@@ -91,19 +103,20 @@ const FormLabel = React.forwardRef<
 FormLabel.displayName = "FormLabel";
 
 const FormControl = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  React.ElementRef<typeof Slot>,
+  React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+  const ariaDescribedBy =
+    [error ? formMessageId : null, formDescriptionId].filter(Boolean).join(" ") || undefined;
+
   return (
-    <div
+    <Slot
       ref={ref}
-      id={formItemId}
-      aria-describedby={
-        [error ? formMessageId : null, formDescriptionId].filter(Boolean).join(" ") || undefined
-      }
-      aria-invalid={!!error}
       {...props}
+      id={formItemId}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={!!error}
     />
   );
 });
